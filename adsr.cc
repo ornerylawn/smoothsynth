@@ -52,6 +52,8 @@ void ADSR::Compute(int frame_count) {
 				t_ += duration_per_frame_;
 			}
 			break;
+		case State::OFF:
+			break;
 		}
 
 		stereo_out_[2*i] = amp * stereo_in[2*i];
