@@ -8,8 +8,6 @@ void ADSR::Compute(int frame_count) {
 	CHECK(stereo_in.size() == frame_count*2);
 	CHECK(trigger_in.size() == frame_count);
 
-	float volume = 0.4;
-
 	for (int i = 0; i < frame_count; i++) {
 		float trigger = trigger_in[i];
 		if (1.0 <= trigger) {  // ON
@@ -24,31 +22,31 @@ void ADSR::Compute(int frame_count) {
 		switch (state_) {
 		case State::ATTACK:
 			if (t_ >= attack_) {
-				amp = volume * 1.0f;
+				amp = volume_ * 1.0f;
 				state_ = State::DECAY;
 				t_ = Duration(0);
 			} else {
-				amp = volume * (t_ / attack_);
+				amp = volume_ * (t_ / attack_);
 				t_ += duration_per_frame_;
 			}
 			break;
 		case State::DECAY:
 			if (t_ >= decay_) {
-				amp = volume * sustain_;
+				amp = volume_ * sustain_;
 				state_ = State::SUSTAIN;
 			} else {
-				amp = volume * (sustain_ + std::exp(-5*(t_ / decay_)) * (1.0f - sustain_));
+				amp = volume_ * (sustain_ + std::exp(-5*(t_ / decay_)) * (1.0f - sustain_));
 				t_ += duration_per_frame_;
 			}
 			break;
 		case State::SUSTAIN:
-			amp = volume * sustain_;
+			amp = volume_ * sustain_;
 			break;
 		case State::RELEASE:
 			if (t_ >= release_) {
 				state_ = State::OFF;
 			} else {
-				amp = volume * sustain_ * std::exp(-5*(t_ / release_));
+				amp = volume_ * sustain_ * std::exp(-5*(t_ / release_));
 				t_ += duration_per_frame_;
 			}
 			break;

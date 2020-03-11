@@ -6,6 +6,7 @@
 #include "vco.h"
 #include "mono_to_stereo.h"
 #include "adsr.h"
+#include "lowpass.h"
 
 class SmoothSynth : public Synth {
 public:
@@ -32,6 +33,7 @@ private:
 	int voices_;
 	Sequencer sequencer_;
 	FixedArray<VCO> vcos_;
+	FixedArray<LowPass> filters_;
 	FixedArray<MonoToStereo> mono_to_stereos_;
 	FixedArray<ADSR> adsrs_;
 

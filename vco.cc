@@ -19,7 +19,8 @@ void VCO::Compute(int frame_count) {
 	// Saw.
 	// TODO: bandlimited synthesis that sounds like an oberheim.
 	for (int i = 0; i < frame_count; i++) {
-		float f = frequency_in[i];
+		float drift = std::sin(drift_radians_);
+		float f = frequency_in[i] + drift_amp_*drift + drift_offset_;
 		float sum = 0.0;
 		for (int j = 1; j <= 20; j++) {
 			sum += std::pow(-1, j) * std::sin(radians_ * j) / j;
@@ -27,6 +28,8 @@ void VCO::Compute(int frame_count) {
 		mono_out_[i] = 2 * sum / PI;
 		float dr = RadiansPerFrame(f, seconds_per_frame_);
 		radians_ = WrapRadians(radians_ + dr);
+		float drift_dr = RadiansPerFrame(drift_f_, seconds_per_frame_);
+		drift_radians_ = WrapRadians(drift_radians_ + drift_dr);
 	}
 	
 	maybe_mono_out_ = AsOptional(ArrayView<float>(&mono_out_, 0, frame_count));

@@ -27,7 +27,7 @@ Optional<Error> run(const std::string& midi_in_name) {
 	// lameduck period where audio is no longer being generated but
 	// we're still waiting for the currently playing audio chunk to
 	// finish playing.
-	Pa_Sleep(100000);
+	Pa_Sleep(10000000);
 	
 	return Nil<Error>();
 }

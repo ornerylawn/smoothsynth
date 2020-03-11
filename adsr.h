@@ -8,9 +8,14 @@ class ADSR : public Node {
 public:
 	ADSR() {}  // for creating arrays
 	ADSR(int sample_rate, int frames_per_chunk)
-		: stereo_out_(frames_per_chunk*2), duration_per_frame_(DurationPerFrame(sample_rate)),
-			attack_(Duration(10) * Millisecond), decay_(Duration(100) * Millisecond),
-			sustain_(0.5), release_(Duration(370) * Millisecond), state_(State::OFF), t_(0) {}
+		: stereo_out_(frames_per_chunk*2),
+			duration_per_frame_(DurationPerFrame(sample_rate)),
+			volume_(0.1),
+			attack_(Duration(10) * Millisecond),
+			decay_(Duration(200) * Millisecond),
+			sustain_(0.4),
+			release_(Duration(380) * Millisecond),
+			state_(State::OFF), t_(0) {}
 
 	void set_maybe_stereo_in(const Optional<ArrayView<float>>* maybe_stereo_in) {
 		maybe_stereo_in_ = maybe_stereo_in;
@@ -46,6 +51,7 @@ private:
 	Duration decay_;
 	float sustain_;
 	Duration release_;
+	float volume_;
 
 	State state_;
 	Duration t_;

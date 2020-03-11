@@ -5,13 +5,16 @@
 SmoothSynth::SmoothSynth(int sample_rate, int frames_per_chunk, int voices)
 	: voices_(voices),
 		sequencer_(sample_rate, frames_per_chunk, voices),
-		vcos_(voices, VCO(sample_rate, frames_per_chunk)),
+		vcos_(voices, VCO(sample_rate, frames_per_chunk, 0.0)),
+		filters_(voices, LowPass(sample_rate, frames_per_chunk)),
 		mono_to_stereos_(voices, MonoToStereo(sample_rate, frames_per_chunk)),
 		adsrs_(voices, ADSR(sample_rate, frames_per_chunk)),
 		stereo_out_(frames_per_chunk*2) {
 	for (int i = 0; i < voices_; i++) {
+		vcos_[i] = VCO(sample_rate, frames_per_chunk, 0.0);
 		vcos_[i].set_maybe_frequency_in(sequencer_.maybe_frequency_outs(i));
-		mono_to_stereos_[i].set_maybe_mono_in(vcos_[i].maybe_mono_out());
+		filters_[i].set_maybe_mono_in(vcos_[i].maybe_mono_out());
+		mono_to_stereos_[i].set_maybe_mono_in(filters_[i].maybe_mono_out());
 		adsrs_[i].set_maybe_stereo_in(mono_to_stereos_[i].maybe_stereo_out());
 		adsrs_[i].set_maybe_trigger_in(sequencer_.maybe_trigger_outs(i));
 	}
@@ -21,6 +24,7 @@ void SmoothSynth::MakeOutputsNil() {
 	sequencer_.MakeOutputsNil();
 	for (int i = 0; i < voices_; i++) {
 		vcos_[i].MakeOutputsNil();
+		filters_[i].MakeOutputsNil();
 		mono_to_stereos_[i].MakeOutputsNil();
 		adsrs_[i].MakeOutputsNil();
 	}
@@ -37,6 +41,7 @@ void SmoothSynth::Compute(int frame_count) {
 
 	for (int i = 0; i < voices_; i++) {
 		vcos_[i].Compute(frame_count);
+		filters_[i].Compute(frame_count);
 		mono_to_stereos_[i].Compute(frame_count);
 		adsrs_[i].Compute(frame_count);
 
