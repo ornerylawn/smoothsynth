@@ -3,10 +3,16 @@
 #include <cmath>
 
 void ADSR::Compute(int frame_count) {
-	ArrayView<float> stereo_in = maybe_stereo_in_->ValueOrDie();
-	ArrayView<float> trigger_in = maybe_trigger_in_->ValueOrDie();
-	CHECK(stereo_in.size() == frame_count*2);
-	CHECK(trigger_in.size() == frame_count);
+	CHECK(stereo_in_ != nullptr);
+  const float* stereo_in = stereo_in_->read_ptr();
+	CHECK(stereo_in_->size() == frame_count*2);
+
+	CHECK(trigger_in_ != nullptr);
+	const float* trigger_in = trigger_in_->read_ptr();
+	CHECK(trigger_in_->size() == 1);
+
+	stereo_out_.set_size(frame_count*2);
+	float* stereo_out = stereo_out_.write_ptr();
 
 	for (int i = 0; i < frame_count; i++) {
 		float trigger = trigger_in[i];
@@ -54,9 +60,7 @@ void ADSR::Compute(int frame_count) {
 			break;
 		}
 
-		stereo_out_[2*i] = amp * stereo_in[2*i];
-		stereo_out_[2*i+1] = amp * stereo_in[2*i+1];
+		stereo_out[2*i] = amp * stereo_in[2*i];
+		stereo_out[2*i+1] = amp * stereo_in[2*i+1];
 	}
-
-	maybe_stereo_out_ = AsOptional(ArrayView<float>(&stereo_out_, 0, frame_count*2));
 }

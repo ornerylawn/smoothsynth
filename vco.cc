@@ -4,10 +4,13 @@
 
 void VCO::Compute(int frame_count) {
 	// TODO: all components should be able to function without all of
-	// their inputs (frequency should be const or something).
-  ArrayView<float> frequency_in = maybe_frequency_in_->ValueOrDie();
-	CHECK(frequency_in.size() == frame_count);
-	CHECK(frame_count <= mono_out_.size());
+	// their inputs connected (frequency should be const or something).
+	CHECK(frequency_in_ != nullptr);
+	const float* frequency_in = frequency_in_->read_ptr();
+	CHECK(frequency_in_->size() == frame_count);
+
+	mono_out_.set_size(frame_count);
+	float* mono_out = mono_out_.write_ptr();
 
 	// Sine.
 	// for (int i = 0; i < frame_count; i++) {
@@ -25,12 +28,10 @@ void VCO::Compute(int frame_count) {
 		for (int j = 1; j <= 20; j++) {
 			sum += std::pow(-1, j) * std::sin(radians_ * j) / j;
 		}
-		mono_out_[i] = 2 * sum / PI;
+		mono_out[i] = 2 * sum / PI;
 		float dr = RadiansPerFrame(f, seconds_per_frame_);
 		radians_ = WrapRadians(radians_ + dr);
 		float drift_dr = RadiansPerFrame(drift_f_, seconds_per_frame_);
 		drift_radians_ = WrapRadians(drift_radians_ + drift_dr);
 	}
-	
-	maybe_mono_out_ = AsOptional(ArrayView<float>(&mono_out_, 0, frame_count));
 }

@@ -13,15 +13,16 @@
 //
 //   List<Node*> todo;
 //   for (auto node : nodes) {
-//     node->MakeOutputsNil();
+//     node->StopTx();
 //     todo.push(node);
 //   }
 //
 //   while (!todo.empty()) {
 //     for (iter = todo.begin(); iter != todo.end(); ) {
 //       Node* node = *iter;
-//       if (node->inputs_available()) {
+//       if (node->RxAvailable()) {
 //         node->Compute();
+//         node->StartTx();
 //         iter = todo.erase(iter);
 //       } else {
 //         ++iter;
@@ -31,9 +32,10 @@
 class Node {
 public:
 	virtual ~Node() {}
-	virtual void MakeOutputsNil() = 0;
-	virtual bool inputs_available() const = 0;
+	virtual void StopTx() = 0;
+	virtual bool RxAvailable() const = 0;
 	virtual void Compute(int frame_count) = 0;
+	virtual void StartTx() = 0;
 };
 
 #endif  // NODE_H_

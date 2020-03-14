@@ -3,12 +3,14 @@
 
 #include "base.h"
 #include "node.h"
+#include "chunk.h"
 
 class VCO : public Node {
 public:
 	VCO() {}  // for creating arrays
 	VCO(int sample_rate, int frames_per_chunk, float drift_offset)
-		: mono_out_(frames_per_chunk),
+		: frequency_in_(nullptr),
+			mono_out_(frames_per_chunk),
 			seconds_per_frame_(SecondsPerFrame(sample_rate)),
 			radians_(0.0f),
 			drift_radians_(0.0f),
@@ -17,36 +19,41 @@ public:
 			drift_offset_(drift_offset) {}
 	virtual ~VCO() {}
 
-	void set_maybe_frequency_in(const Optional<ArrayView<float>>* maybe_frequency_in) {
-		maybe_frequency_in_ = maybe_frequency_in;
+	void set_frequency_in(const ChunkTx<float>* frequency_in) {
+		frequency_in_ = frequency_in;
 	}
 
-	const Optional<ArrayView<float>>* maybe_mono_out() const {
-		return &maybe_mono_out_;
+	const ChunkTx<float>* mono_out() const {
+		return &mono_out_;
 	}
 
-	void MakeOutputsNil() override {
-		maybe_mono_out_ = Nil<ArrayView<float>>();
+	void StopTx() override {
+		mono_out_.Stop();
 	}
 
-	bool inputs_available() const override {
-		return !maybe_frequency_in_->is_nil();
+	bool RxAvailable() const override {
+		return frequency_in_ != nullptr && frequency_in_->available();
 	}
 
 	void Compute(int frame_count) override;
 
-private:
-	const Optional<ArrayView<float>>* maybe_frequency_in_;
-	FixedArray<float> mono_out_;
-	Optional<ArrayView<float>> maybe_mono_out_;
+	void StartTx() override {
+		mono_out_.Start();
+	}
 
+private:
 	float seconds_per_frame_;
 	float radians_;
-
 	float drift_radians_;
 	float drift_f_;
 	float drift_amp_;
 	float drift_offset_;
+
+	// Input.
+	const ChunkTx<float>* frequency_in_;
+
+	// Output.
+  ChunkTx<float> mono_out_;
 };
 
 #endif  // VCO_H_

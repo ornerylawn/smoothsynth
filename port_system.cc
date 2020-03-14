@@ -46,9 +46,6 @@ namespace {
 }
 
 Optional<Error> PortSystem::Start() {
-	synth_->set_maybe_midi_in(&maybe_midi_in_);
-	maybe_stereo_out_ = synth_->maybe_stereo_out();
-	
 	MUST(PortError(Pa_Initialize()));
 	audio_initialized_ = true;
 
@@ -74,7 +71,7 @@ Optional<Error> PortSystem::Start() {
 	MUST(PortError(Pm_OpenInput(&midi_in_stream_,
 															midi_in_device_index,
 															nullptr,
-															midi_in_buffer_.size(),
+															midi_in_.capacity(),
 															nullptr,
 															nullptr)));
 	midi_in_stream_opened_ = true;
@@ -87,25 +84,26 @@ void PortSystem::AudioDriverCallback(const float* in,
 																		 int frame_count) {
 	CHECK(out != nullptr);
 	CHECK(frame_count <= frames_per_chunk_);
-	
-	maybe_midi_in_ = Nil<ArrayView<PmEvent>>();
-	synth_->MakeOutputsNil();
-	
+
+	midi_in_.Stop();
 	if (midi_in_stream_opened_ && Pm_Poll(midi_in_stream_)) {
 		int midi_count = Pm_Read(midi_in_stream_,
-														 midi_in_buffer_.buf(),
-														 midi_in_buffer_.size());
-		maybe_midi_in_ = AsOptional(ArrayView<PmEvent>(&midi_in_buffer_, 0, midi_count));
+														 midi_in_.write_ptr(),
+														 midi_in_.capacity());
+		midi_in_.set_size(midi_count);
 	} else {
-		maybe_midi_in_ = AsOptional(ArrayView<PmEvent>());
+		midi_in_.set_size(0);
 	}
+	midi_in_.Start();
 
-	CHECK(synth_->inputs_available());
-	synth_->Compute(frame_count);
+	callback_(frame_count);
 
-	auto stereo_out = maybe_stereo_out_->ValueOrDie();
-	CHECK(stereo_out.size() == frame_count * 2);
-	memcpy(out, stereo_out.buf(), sizeof(float) * stereo_out.size());
+	CHECK(stereo_out_ != nullptr);
+	CHECK(stereo_out_->available());
+	const float* stereo_out = stereo_out_->read_ptr();
+	int stereo_out_size = stereo_out_->size();
+	CHECK(stereo_out_size == frame_count * 2);
+	memcpy(out, stereo_out, sizeof(float) * stereo_out_size);
 }
 
 PortSystem::~PortSystem() {

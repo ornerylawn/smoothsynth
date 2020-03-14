@@ -1,6 +1,6 @@
 CC=g++
 CFLAGS=-std=c++11 -lportaudio -lportmidi
-INLINEFILES = node.h synth.h
+INLINEFILES = node.h synth.h chunk.h
 HFILES = adsr.h base.h mono_to_stereo.h port_system.h sequencer.h smooth_synth.h vco.h lowpass.h
 OFILES = adsr.o base.o mono_to_stereo.o port_system.o sequencer.o smooth_synth.o vco.o lowpass.o
 

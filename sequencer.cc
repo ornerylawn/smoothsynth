@@ -5,13 +5,12 @@
 
 Sequencer::Sequencer(int sample_rate, int frames_per_chunk, int voices)
 	: voices_(voices),
-		frequency_outs_(voices, FixedArray<float>(frames_per_chunk)),
-		maybe_frequency_outs_(voices),
-		trigger_outs_(voices, FixedArray<float>(frames_per_chunk)),
-		maybe_trigger_outs_(voices),
 		voice_list_(voices),
-		voice_by_note_(128) {
-	for (int i = 0; i < voice_list_.size(); i++) {
+		voice_by_note_(128),
+		midi_in_(nullptr),
+		frequency_outs_(voices, ChunkTx<float>(frames_per_chunk)),
+		trigger_outs_(voices, ChunkTx<float>(frames_per_chunk)) {
+	for (int i = 0; i < voices_; i++) {
 		Voice* voice = &voice_list_[i];
 		voice->index = i;
 		voice->on = false;
@@ -32,17 +31,17 @@ Sequencer::Sequencer(int sample_rate, int frames_per_chunk, int voices)
 }
 
 void Sequencer::Compute(int frame_count) {
-	if (voices_ > 0) {
-		CHECK(frame_count <= frequency_outs_[0].size());
-	}
+	CHECK(midi_in_ != nullptr);
+	const PmEvent* midi_in = midi_in_->read_ptr();
+	int midi_in_size = midi_in_->size();
 
-	ArrayView<PmEvent> midi_in = maybe_midi_in_->ValueOrDie();
-
-	for (int voice = 0; voice < voices_; voice++) {
-		trigger_outs_[voice][0] = 0.0f;
+	for (int i = 0; i < voices_; i++) {
+		frequency_outs_[i].set_size(frame_count);
+		trigger_outs_[i].set_size(1);
+		*(trigger_outs_[i].write_ptr()) = 0.0f;
 	}
 	
-	for (int i = 0; i < midi_in.size(); i++) {
+	for (int i = 0; i < midi_in_size; i++) {
 		PmEvent event = midi_in[i];
 		switch (Pm_MessageStatus(event.message)) {
 		case 128:
@@ -56,19 +55,17 @@ void Sequencer::Compute(int frame_count) {
 		}
 	}
 
-	for (int voice = 0; voice < voices_; voice++) {
-		int note = voice_list_[voice].note;
+	// TODO: would be nice if we could have transitions not synced to
+	// chunk boundaries.
+	for (int i = 0; i < voices_; i++) {
+		int note = voice_list_[i].note;
 		float f = 440.0 * std::pow(2, (note-69)/12.0);
-		FixedArray<float>& frequency_out = frequency_outs_[voice];
-		for (int i = 0; i < frame_count; i++) {
-			frequency_out[i] = f;
+		float* frequency_out = frequency_outs_[i].write_ptr();
+		for (int j = 0; j < frame_count; j++) {
+			frequency_out[j] = f;
 		}
-		maybe_frequency_outs_[voice] = AsOptional(ArrayView<float>(&frequency_outs_[voice], 0, frame_count));
-		maybe_trigger_outs_[voice] = AsOptional(ArrayView<float>(&trigger_outs_[voice], 0, frame_count));
 	}
 }
-
-
 
 void Sequencer::TurnNoteOn(int note) {
 	// The first item in the list is always the one we should use. It is
@@ -94,7 +91,7 @@ void Sequencer::TurnNoteOn(int note) {
 	}
 	voice->note = note;
 	voice_by_note_[note] = AsOptional(voice);
-	trigger_outs_[voice->index][0] = 1.0f;
+	*(trigger_outs_[voice->index].write_ptr()) = 1.0f;
 
 	// Move to end.
 	if (voices_ > 1) {
@@ -139,7 +136,7 @@ void Sequencer::TurnNoteOff(int note) {
 	// Turn the note off (we need to leave voice->note for ADSR release).
 	voice_by_note_[note] = Nil<Voice*>();
 	voice->on = false;
-	trigger_outs_[voice->index][0] = -1.0f;
+	*(trigger_outs_[voice->index].write_ptr()) = -1.0f;
 
 	// Insert as last_unused_.
 	if (last_unused_.is_nil()) {
@@ -176,17 +173,17 @@ std::string itoa(int k) {
 }
 
 void Sequencer::PrintList() {
-	for (int i = 0; i < voice_list_.size(); i++) {
-		const Voice* v = &voice_list_[i];
-		if (v->on) {
-			if (v->note < 10) {
-				std::cout << "[" << v->index << ":0" << v->note << "]";
-			} else {
-				std::cout << "[" << v->index << ":" << v->note << "]";
-			}
-		} else {
-			//std::cout << "[" << v->index << ":__]";
-		}
-	}
-	std::cout << std::endl;
+	// for (int i = 0; i < voice_list_.size(); i++) {
+	// 	const Voice* v = &voice_list_[i];
+	// 	if (v->on) {
+	// 		if (v->note < 10) {
+	// 			std::cout << "[" << v->index << ":0" << v->note << "]";
+	// 		} else {
+	// 			std::cout << "[" << v->index << ":" << v->note << "]";
+	// 		}
+	// 	} else {
+	// 		//std::cout << "[" << v->index << ":__]";
+	// 	}
+	// }
+	// std::cout << std::endl;
 }

@@ -5,51 +5,51 @@
 
 #include "base.h"
 #include "node.h"
+#include "chunk.h"
 
 class Sequencer : public Node {
 public:
 	Sequencer(int sample_rate, int frames_per_chunk, int voices);
 	virtual ~Sequencer() {}
 
-	void set_maybe_midi_in(const Optional<ArrayView<PmEvent>>* maybe_midi_in) {
-		maybe_midi_in_ = maybe_midi_in;
+	void set_midi_in(const ChunkTx<PmEvent>* midi_in) {
+		midi_in_ = midi_in;
 	}
 
-	const Optional<ArrayView<float>>* maybe_frequency_outs(int i) const {
-		return &maybe_frequency_outs_[i];
+	const ChunkTx<float>* frequency_outs(int i) const {
+		return &frequency_outs_[i];
 	}
 
-	const Optional<ArrayView<float>>* maybe_trigger_outs(int i) const {
-		return &maybe_trigger_outs_[i];
+	const ChunkTx<float>* trigger_outs(int i) const {
+		return &trigger_outs_[i];
 	}
 
-	void MakeOutputsNil() override {
+	void StopTx() override {
 		for (int i = 0; i < voices_; i++) {
-			maybe_frequency_outs_[i] = Nil<ArrayView<float>>();
-			maybe_trigger_outs_[i] = Nil<ArrayView<float>>();
+			frequency_outs_[i].Stop();
+			trigger_outs_[i].Stop();
 		}
 	}
 
-	bool inputs_available() const override {
-		return !maybe_midi_in_->is_nil();
+	bool RxAvailable() const override {
+		return midi_in_ != nullptr && midi_in_->available();
 	}
 
 	void Compute(int frame_count) override;
+
+	void StartTx() override {
+		for (int i = 0; i < voices_; i++) {
+			frequency_outs_[i].Start();
+			trigger_outs_[i].Start();
+		}
+	}
 	
 private:
 	void TurnNoteOn(int note);
 	void TurnNoteOff(int note);
-
 	void PrintList();
 
 	int voices_;
-	
-	const Optional<ArrayView<PmEvent>>* maybe_midi_in_;
-	FixedArray<FixedArray<float>> frequency_outs_;
-	FixedArray<Optional<ArrayView<float>>> maybe_frequency_outs_;
-	FixedArray<FixedArray<float>> trigger_outs_;
-	FixedArray<Optional<ArrayView<float>>> maybe_trigger_outs_;
-
 
   // When a note is turned on, we need to use one of the unused
   // voices, or recycle a voice in use. If we're picking a voice in
@@ -87,6 +87,14 @@ private:
 	Optional<Voice*> last_unused_;
 	
 	FixedArray<Optional<Voice*>> voice_by_note_;
+
+
+	// Inputs.
+	const ChunkTx<PmEvent>* midi_in_;
+
+	// Outputs.
+	FixedArray<ChunkTx<float>> frequency_outs_;
+	FixedArray<ChunkTx<float>> trigger_outs_;
 };
 
 #endif  // SEQUENCER_H_

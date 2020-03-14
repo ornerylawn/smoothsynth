@@ -11,53 +11,56 @@ SmoothSynth::SmoothSynth(int sample_rate, int frames_per_chunk, int voices)
 		adsrs_(voices, ADSR(sample_rate, frames_per_chunk)),
 		stereo_out_(frames_per_chunk*2) {
 	for (int i = 0; i < voices_; i++) {
-		vcos_[i] = VCO(sample_rate, frames_per_chunk, 0.0);
-		vcos_[i].set_maybe_frequency_in(sequencer_.maybe_frequency_outs(i));
-		filters_[i].set_maybe_mono_in(vcos_[i].maybe_mono_out());
-		mono_to_stereos_[i].set_maybe_mono_in(filters_[i].maybe_mono_out());
-		adsrs_[i].set_maybe_stereo_in(mono_to_stereos_[i].maybe_stereo_out());
-		adsrs_[i].set_maybe_trigger_in(sequencer_.maybe_trigger_outs(i));
+		vcos_[i].set_frequency_in(sequencer_.frequency_outs(i));
+		filters_[i].set_mono_in(vcos_[i].mono_out());
+		mono_to_stereos_[i].set_mono_in(filters_[i].mono_out());
+		adsrs_[i].set_stereo_in(mono_to_stereos_[i].stereo_out());
+		adsrs_[i].set_trigger_in(sequencer_.trigger_outs(i));
 	}
-}
-
-void SmoothSynth::MakeOutputsNil() {
-	sequencer_.MakeOutputsNil();
-	for (int i = 0; i < voices_; i++) {
-		vcos_[i].MakeOutputsNil();
-		filters_[i].MakeOutputsNil();
-		mono_to_stereos_[i].MakeOutputsNil();
-		adsrs_[i].MakeOutputsNil();
-	}
-	maybe_stereo_out_ = Nil<ArrayView<float>>();
 }
 
 void SmoothSynth::Compute(int frame_count) {
+	stereo_out_.set_size(frame_count*2);
+	float* stereo_out = stereo_out_.write_ptr();
+	
 	sequencer_.Compute(frame_count);
+	sequencer_.StartTx();
 
 	for (int i = 0; i < frame_count; i++) {
-		stereo_out_[2*i] = 0.0f;
-		stereo_out_[2*i+1] = 0.0f;
+		stereo_out[2*i] = 0.0f;
+	 	stereo_out[2*i+1] = 0.0f;
 	}
 
 	for (int i = 0; i < voices_; i++) {
-		vcos_[i].Compute(frame_count);
-		filters_[i].Compute(frame_count);
-		mono_to_stereos_[i].Compute(frame_count);
-		adsrs_[i].Compute(frame_count);
+		auto& vco = vcos_[i];
+		vco.Compute(frame_count);
+		vco.StartTx();
+		
+		auto& filter = filters_[i];
+		filter.Compute(frame_count);
+		filter.StartTx();
+		
+		auto& mono_to_stereo = mono_to_stereos_[i];
+		mono_to_stereo.Compute(frame_count);
+		mono_to_stereo.StartTx();
+		
+		auto& adsr = adsrs_[i];
+		adsr.Compute(frame_count);
+		adsr.StartTx();
 
-		ArrayView<float> adsr_stereo_out = adsrs_[i].maybe_stereo_out()->ValueOrDie();
-		CHECK(adsr_stereo_out.size() == frame_count*2);
-		for (int i = 0; i < frame_count; i++) {
-			stereo_out_[2*i] += adsr_stereo_out[2*i];
-			stereo_out_[2*i+1] += adsr_stereo_out[2*i+1];
+		const float* adsr_stereo_out = adsr.stereo_out()->read_ptr();
+		CHECK(adsr.stereo_out()->size() == frame_count*2);
+		for (int j = 0; j < frame_count; j++) {
+			stereo_out[2*j] += adsr_stereo_out[2*j];
+			stereo_out[2*j+1] += adsr_stereo_out[2*j+1];
 		}
 	}
 
+	// Clip.
 	for (int i = 0; i < frame_count; i++) {
-		float& left = stereo_out_[2*i];
+		float& left = stereo_out[2*i];
 		left = std::max(-1.0f, std::min(left, 1.0f));
-		float& right = stereo_out_[2*i+1];
+		float& right = stereo_out[2*i+1];
 		right = std::max(-1.0f, std::min(right, 1.0f));
 	}
-	maybe_stereo_out_ = AsOptional(ArrayView<float>(&stereo_out_, 0, frame_count*2));
 }

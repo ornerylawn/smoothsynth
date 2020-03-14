@@ -3,40 +3,48 @@
 
 #include "base.h"
 #include "node.h"
+#include "chunk.h"
 
 class LowPass : public Node {
 public:
 	LowPass() {}  // for creating arrays
 	LowPass(int sample_rate, int frames_per_chunk)
-		: mono_out_(frames_per_chunk),
+		: mono_in_(nullptr),
+			mono_out_(frames_per_chunk),
 			duration_per_frame_(DurationPerFrame(sample_rate)),
 			last_sample_(0.0f) {}
 
-	void set_maybe_mono_in(const Optional<ArrayView<float>>* maybe_mono_in) {
-		maybe_mono_in_ = maybe_mono_in;
+	void set_mono_in(const ChunkTx<float>* mono_in) {
+		mono_in_ = mono_in;
 	}
 
-	const Optional<ArrayView<float>>* maybe_mono_out() const {
-		return &maybe_mono_out_;
+	const ChunkTx<float>* mono_out() const {
+		return &mono_out_;
 	}
 
-	void MakeOutputsNil() override {
-		maybe_mono_out_ = Nil<ArrayView<float>>();
+	void StopTx() override {
+		mono_out_.Stop();
 	}
 
-	bool inputs_available() const override {
-		return !maybe_mono_in_->is_nil();
+	bool RxAvailable() const override {
+		return mono_in_ != nullptr && mono_in_->available();
 	}
 
 	void Compute(int frame_count) override;
 
-private:
-	const Optional<ArrayView<float>>* maybe_mono_in_;
-	FixedArray<float> mono_out_;
-	Optional<ArrayView<float>> maybe_mono_out_;
+	void StartTx() override {
+		mono_out_.Start();
+	}
 
+private:
 	Duration duration_per_frame_;
 	float last_sample_;
+
+	// Inputs.
+	const ChunkTx<float>* mono_in_;
+
+	// Outputs.
+	ChunkTx<float> mono_out_;
 };
 
 #endif  // LOWPASS_H_

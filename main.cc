@@ -2,24 +2,35 @@
 #include "port_system.h"
 #include "smooth_synth.h"
 
+Synth* g_synth = nullptr;
+
+void AudioDriverCallback(int frame_count) {
+	CHECK(g_synth != nullptr);
+	g_synth->StopTx();
+	CHECK(g_synth->RxAvailable());
+	g_synth->Compute(frame_count);
+	g_synth->StartTx();
+	CHECK(g_synth->stereo_out()->available());
+}
+
 Optional<Error> run(const std::string& midi_in_name) {
 	int midi_in_buffer_size = 32;
 	int sample_rate = 44100;
 	int frames_per_chunk = 1024;
 	int voices = 8;
 
-	SmoothSynth synth(sample_rate,
-										frames_per_chunk,
-										voices);
-
-	// TODO: it might be a better design to not have the PortSystem call
-	// into the synth but instead call a callback. The callback would
-	// still need access to the synth (global or param?).
 	PortSystem sys(midi_in_buffer_size,
 								 midi_in_name,
 								 sample_rate,
 								 frames_per_chunk,
-								 &synth);
+								 AudioDriverCallback);
+
+	SmoothSynth synth(sample_rate,
+										frames_per_chunk,
+										voices);
+	synth.set_midi_in(sys.midi_in());
+	sys.set_stereo_out(synth.stereo_out());
+	g_synth = &synth;
 
 	MUST(sys.Start());
 
@@ -28,7 +39,8 @@ Optional<Error> run(const std::string& midi_in_name) {
 	// we're still waiting for the currently playing audio chunk to
 	// finish playing.
 	Pa_Sleep(10000000);
-	
+
+	g_synth = nullptr;
 	return Nil<Error>();
 }
 
