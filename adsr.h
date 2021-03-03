@@ -13,10 +13,10 @@ public:
 			stereo_out_(frames_per_chunk*2),
 			duration_per_frame_(DurationPerFrame(sample_rate)),
 			volume_(0.1),
-			attack_(Duration(10) * Millisecond),
+			attack_(Duration(12) * Millisecond),
 			decay_(Duration(200) * Millisecond),
-			sustain_(0.4),
-			release_(Duration(380) * Millisecond),
+			sustain_(0.5),
+			release_(Duration(440) * Millisecond),
 			state_(State::OFF),
 			t_(0) {}
 

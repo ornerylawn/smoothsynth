@@ -1,16 +1,16 @@
 CC=g++
-CFLAGS=-std=c++11 -lportaudio -lportmidi
-INLINEFILES = node.h synth.h chunk.h
-HFILES = adsr.h base.h mono_to_stereo.h port_system.h sequencer.h smooth_synth.h vco.h lowpass.h
-OFILES = adsr.o base.o mono_to_stereo.o port_system.o sequencer.o smooth_synth.o vco.o lowpass.o
+CFLAGS=-std=c++11 -lportaudio -lportmidi -lncurses
+INLINEFILES = node.h chunk.h
+HFILES = adsr.h base.h mono_to_stereo.h system.h sequencer.h synth.h vco.h lowpass.h mixer.h
+OFILES = adsr.o base.o mono_to_stereo.o system.o sequencer.o synth.o vco.o lowpass.o mixer.o
 
 %.o: %.cc $(HFILES) $(INLINEFILES)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-smooth_synth: main.cc $(OFILES)
+smoothsynth: main.cc $(OFILES)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 .PHONY: clean
 
 clean:
-	rm -f *.o *~ smooth_synth
+	rm -f *.o *~ smoothsynth

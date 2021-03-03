@@ -4,8 +4,9 @@
 #include "base.h"
 
 // ChunkTx is used to communicate an array of items. The writer will
-// write items in, then "start transmission", which lets the readers
-// know that the data is ready. Then the readers can read the items.
+// write items in. Then "start transmission", which lets the readers
+// know that the data is ready. Then the readers can read the items,
+// until the write "stops transmission" to update the data.
 template <typename T>
 class ChunkTx {
 public:

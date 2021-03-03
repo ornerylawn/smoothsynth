@@ -1,19 +1,14 @@
-#ifndef LOWPASS_H_
-#define LOWPASS_H_
+#ifndef CONVOLUTION_REVERB_H_
+#define CONVOLUTION_REVERB_H_
 
-#include "base.h"
-#include "node.h"
 #include "chunk.h"
+#include "node.h"
 
-class LowPass : public Node {
+class ConvolutionReverb : public Node {
 public:
-  LowPass() {}  // for creating arrays
-  LowPass(int sample_rate, int frames_per_chunk)
-    : stereo_in_(nullptr),
-      stereo_out_(2*frames_per_chunk),
-      duration_per_frame_(DurationPerFrame(sample_rate)),
-      last_left_sample_(0.0f),
-      last_right_sample_(0.0f) {}
+  ConvolutionReverb() {}
+  ConvolutionReverb(int sample_rate, int frames_per_chunk);
+  virtual ~ConvolutionReverb() {}
 
   void set_stereo_in(const ChunkTx<float>* stereo_in) {
     stereo_in_ = stereo_in;
@@ -36,17 +31,16 @@ public:
   void StartTx() override {
     stereo_out_.Start();
   }
-
+  
 private:
   Duration duration_per_frame_;
-  float last_left_sample_;
-  float last_right_sample_;
-
-  // Inputs.
+  Duration decay_;
   const ChunkTx<float>* stereo_in_;
-
-  // Outputs.
   ChunkTx<float> stereo_out_;
+  FixedArray<float> impulse_response_;
+  FixedArray<float> input_ring_;
+  int w_;
+  int wrap_mask_;
 };
 
-#endif  // LOWPASS_H_
+#endif  // CONVOLUTION_REVERB_H_

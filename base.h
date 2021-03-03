@@ -1,12 +1,13 @@
 #ifndef BASE_H_
 #define BASE_H_
 
+#include <cmath>
 #include <iostream>
 
 const float PI = 3.14159265358979;
 const float TWO_PI = 2 * PI;
 
-#define MUST(EXP) \
+#define RETURN_IF_ERROR(EXP) \
 	do {																							\
 		Optional<Error> maybe_err = EXP;								\
 		if (!maybe_err.is_nil()) { return maybe_err; }	\
@@ -144,9 +145,28 @@ const Duration Millisecond = Duration(1000) * Microsecond;
 const Duration Second = Duration(1000) * Millisecond;
 
 float SecondsPerFrame(int sample_rate);
+
 Duration DurationPerFrame(int sample_rate);
-float RadiansPerFrame(float frequency, float seconds_per_sample);
-float WrapRadians(float radians);
+
 int NextPowerOf2(int k);
+
+inline float RadiansPerFrame(float frequency, float seconds_per_sample) {
+  float rotations_per_sample = frequency * seconds_per_sample;
+	return rotations_per_sample * TWO_PI;
+}
+
+inline float WrapRadians(float radians) {
+  if (radians > TWO_PI) {
+		return radians - TWO_PI * std::floor(radians/TWO_PI);
+	} else if (radians < 0.0) {
+		return radians - TWO_PI * std::floor(radians/TWO_PI);
+	} else {
+		return radians;
+	}
+}
+
+inline float LinearInterpolation(float left, float right, float amount) {
+  return left + amount*(right-left);
+}
 
 #endif  // BASE_H_

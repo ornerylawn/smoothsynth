@@ -7,9 +7,9 @@
 
 #include "chunk.h"
 
-class PortSystem {
+class System {
 public:
-	PortSystem(int midi_in_buffer_size,
+	System(int midi_in_buffer_size,
 						 const std::string& midi_in_name,
 						 int sample_rate,
 						 int frames_per_chunk,
@@ -21,7 +21,7 @@ public:
 			frames_per_chunk_(frames_per_chunk),
 			callback_(callback) {}
 
-	~PortSystem();
+	~System();
 
 	const ChunkTx<PmEvent>* midi_in() { return &midi_in_; }
 
