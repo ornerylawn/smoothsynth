@@ -12,11 +12,11 @@ class ADSR : public Node {
       : trigger_in_(nullptr),
         cv_out_(frames_per_chunk),
         duration_per_frame_(DurationPerFrame(sample_rate)),
-        volume_(0.1),
+        volume_(0.3),
         attack_(Duration(12) * Millisecond),
         decay_(Duration(200) * Millisecond),
-        sustain_(0.5),
-        release_(Duration(440) * Millisecond),
+        sustain_(0.4),
+        release_(Duration(540) * Millisecond),
         state_(State::OFF),
         t_(0) {}
 

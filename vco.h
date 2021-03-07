@@ -22,12 +22,8 @@ class VCO : public Node {
   void StopTx() override;
 
  private:
-  float seconds_per_frame_;
+  float frequency_to_radians_;
   float radians_;
-  float drift_radians_;
-  float drift_f_;
-  float drift_amp_;
-  float drift_offset_;
 
   FixedArray<float> wave_table_;
 

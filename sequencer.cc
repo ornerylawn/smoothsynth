@@ -3,13 +3,13 @@
 #include <cmath>
 
 Sequencer::Sequencer(int sample_rate, int frames_per_chunk, int voices)
-    : voices_(voices),
-      voice_list_(voices),
-      voice_by_note_(128),
-      midi_in_(nullptr),
+    : midi_in_(nullptr),
       frequency_outs_(voices, ChunkTx<float>(frames_per_chunk)),
-      trigger_outs_(voices, ChunkTx<float>(frames_per_chunk)) {
-  for (int i = 0; i < voices; i++) {
+      trigger_outs_(voices, ChunkTx<float>(frames_per_chunk)),
+      voices_(voices),
+      voice_list_(voices),
+      voice_by_note_(128) {
+  for (int i = 0; i < voices; ++i) {
     auto& voice = voice_list_[i];
     voice.index = i;
     voice.on = false;
@@ -24,18 +24,22 @@ Sequencer::Sequencer(int sample_rate, int frames_per_chunk, int voices)
   }
   front_sentinel_.prev = nullptr;
   front_sentinel_.next = &voice_list_[0];
+  voice_list_[0].prev = &front_sentinel_;
+  voice_list_[voices-1].next = &back_sentinel_;
   back_sentinel_.prev = &voice_list_[voices - 1];
   back_sentinel_.next = nullptr;
   insert_point_ = &voice_list_[voices - 1];  // last unused voice
 }
 
-bool Sequencer::Rx() { return midi_in_ != nullptr && midi_in_->tx(); }
+bool Sequencer::Rx() const { return midi_in_ != nullptr && midi_in_->tx(); }
 
 void Sequencer::ComputeAndStartTx(int frame_count) {
+  CHECK(midi_in_ != nullptr && midi_in_->tx());
   const PmEvent* midi_in = midi_in_->read_ptr();
   int midi_in_size = midi_in_->size();
 
   for (int i = 0; i < voices_; i++) {
+    CHECK(frequency_outs_[i].capacity() >= frame_count);
     frequency_outs_[i].set_size(frame_count);
     trigger_outs_[i].set_size(1);
     *(trigger_outs_[i].write_ptr()) = 0.0f;
@@ -57,7 +61,7 @@ void Sequencer::ComputeAndStartTx(int frame_count) {
 
   // TODO: would be nice if we could have transitions not synced to
   // chunk boundaries.
-  for (int i = 0; i < voices_; i++) {
+  for (int i = 0; i < voices_; ++i) {
     int note = voice_list_[i].note;
     float f = 440.0 * std::pow(2, (note - 69) / 12.0);
     float* frequency_out = frequency_outs_[i].write_ptr();
@@ -66,13 +70,13 @@ void Sequencer::ComputeAndStartTx(int frame_count) {
     }
   }
 
-  for (int i = 0; i < voices_; i++) {
+  for (int i = 0; i < voices_; ++i) {
     frequency_outs_[i].set_tx(true);
     trigger_outs_[i].set_tx(true);
   }
 }
 
-void Sequencer::StopTx() override {
+void Sequencer::StopTx() {
   for (int i = 0; i < voices_; i++) {
     frequency_outs_[i].set_tx(false);
     trigger_outs_[i].set_tx(false);

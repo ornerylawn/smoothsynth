@@ -2,3 +2,5 @@
 *.o
 smooth_synth
 .vs
+.vscode
+smoothsynth.dSYM

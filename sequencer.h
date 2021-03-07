@@ -28,6 +28,10 @@ class Sequencer : public Node {
   void TurnNoteOn(int note);
   void TurnNoteOff(int note);
 
+  const ChunkTx<PmEvent>* midi_in_;
+  FixedArray<ChunkTx<float>> frequency_outs_;
+  FixedArray<ChunkTx<float>> trigger_outs_;
+
   // When a note is turned on, we need to use one of the unused
   // voices, or recycle a voice in use. If we're picking a voice in
   // use, we obviously want the oldest one so as to not interrupt the
@@ -64,13 +68,6 @@ class Sequencer : public Node {
   Voice* insert_point_;
 
   FixedArray<Voice*> voice_by_note_;
-
-  // Inputs.
-  const ChunkTx<PmEvent>* midi_in_;
-
-  // Outputs.
-  FixedArray<ChunkTx<float>> frequency_outs_;
-  FixedArray<ChunkTx<float>> trigger_outs_;
 };
 
 #endif  // SEQUENCER_H_

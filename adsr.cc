@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-bool ADSR::Rx() const override {
+bool ADSR::Rx() const {
   return trigger_in_ != nullptr && trigger_in_->tx();
 }
 

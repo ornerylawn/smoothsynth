@@ -10,12 +10,10 @@
 Synth* global_synth = nullptr;
 
 void AudioDriverCallback(int frame_count) {
-  CHECK(global_synth != nullptr);
+  CHECK(global_synth->Rx());  // midi should be ready
   global_synth->StopTx();
-  CHECK(global_synth->RxAvailable());
-  global_synth->Compute(frame_count);
-  global_synth->StartTx();
-  CHECK(global_synth->stereo_out()->available());
+  global_synth->ComputeAndStartTx(frame_count);
+  CHECK(global_synth->stereo_out()->tx());
 }
 
 Optional<Error> PowerOn(const std::string& midi_in_name,
@@ -62,7 +60,7 @@ Optional<Error> PowerOnCommand(const std::vector<std::string>& args) {
   int midi_in_buffer_size = 32;
   int sample_rate = 44100;
   int frames_per_chunk = 1024;
-  int voices = 8;
+  int voices = 4;
   std::string midi_in_name;
 
   for (int i = 0; i < args.size(); i++) {
@@ -269,8 +267,9 @@ class Repl {
 };
 
 Optional<Error> smoothsynth(int argc, char** argv) {
-  Repl repl;
-  repl.Run();
+  //Repl repl;
+  //repl.Run();
+  PowerOnCommand({"--midi_in", "A-PRO 1"});
   return Nil<Error>();
 }
 

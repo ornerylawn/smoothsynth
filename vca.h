@@ -1,6 +1,7 @@
 #ifndef VCA_H_
 #define VCA_H_
 
+#include "chunk.h"
 #include "node.h"
 
 class VCA : Node {
@@ -14,7 +15,7 @@ class VCA : Node {
     stereo_in_ = stereo_in;
   }
   void set_cv_in(const ChunkTx<float>* cv_in) { cv_in_ = cv_in; }
-  const ChunkTx<float>* stereo_out() { return stereo_out_; }
+  const ChunkTx<float>* stereo_out() { return &stereo_out_; }
 
   bool Rx() const override;
   void ComputeAndStartTx(int frame_count) override;

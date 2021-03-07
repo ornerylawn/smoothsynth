@@ -1,10 +1,10 @@
 #include "vcf.h"
 
-bool VCF::Rx() const override {
+bool VCF::Rx() const {
   return stereo_in_ != nullptr && stereo_in_->tx();
 }
 
-void VCF::Compute(int frame_count) {
+void VCF::ComputeAndStartTx(int frame_count) {
   const float* stereo_in = stereo_in_->read_ptr();
   int sample_count = 2 * frame_count;
   stereo_out_.set_size(sample_count);
@@ -22,4 +22,4 @@ void VCF::Compute(int frame_count) {
   stereo_out_.set_tx(true);
 }
 
-void VCF::StartTx() override { stereo_out_.set_tx(true); }
+void VCF::StopTx() { stereo_out_.set_tx(false); }

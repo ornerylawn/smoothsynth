@@ -23,7 +23,7 @@ class VCF : public Node {
 
   bool Rx() const override;
   void ComputeAndStartTx(int frame_count) override;
-  void StopTx() override { stereo_out_.set_tx(false); }
+  void StopTx() override;
 
  private:
   Duration duration_per_frame_;

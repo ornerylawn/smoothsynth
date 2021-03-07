@@ -62,11 +62,13 @@ Optional<Error> System::Start() {
   midi_initialized_ = true;
 
   int midi_in_device_index;
+  CHECK(midi_in_device_index != -1);
   RETURN_IF_ERROR(GetMidiInDeviceIndex(midi_in_name_, &midi_in_device_index));
 
   RETURN_IF_ERROR(
       PortError(Pm_OpenInput(&midi_in_stream_, midi_in_device_index, nullptr,
                              midi_in_.capacity(), nullptr, nullptr)));
+  CHECK(midi_in_stream_ != nullptr);
   midi_in_stream_opened_ = true;
 
   return Nil<Error>();
@@ -76,7 +78,8 @@ void System::AudioDriverCallback(const float* in, float* out, int frame_count) {
   CHECK(out != nullptr);
   CHECK(frame_count <= frames_per_chunk_);
 
-  midi_in_.Stop();
+  midi_in_.set_tx(false);
+  CHECK(midi_in_stream_ != nullptr);
   if (midi_in_stream_opened_ && Pm_Poll(midi_in_stream_)) {
     int midi_count =
         Pm_Read(midi_in_stream_, midi_in_.write_ptr(), midi_in_.capacity());
@@ -84,12 +87,11 @@ void System::AudioDriverCallback(const float* in, float* out, int frame_count) {
   } else {
     midi_in_.set_size(0);
   }
-  midi_in_.Start();
+  midi_in_.set_tx(true);
 
   callback_(frame_count);
+  CHECK(stereo_out_->tx());
 
-  CHECK(stereo_out_ != nullptr);
-  CHECK(stereo_out_->available());
   const float* stereo_out = stereo_out_->read_ptr();
   int stereo_out_size = stereo_out_->size();
   CHECK(stereo_out_size == frame_count * 2);
