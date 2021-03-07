@@ -1,8 +1,8 @@
 CC=g++
 CFLAGS=-std=c++11 -lportaudio -lportmidi -lncurses
 INLINEFILES = node.h chunk.h
-HFILES = adsr.h base.h mono_to_stereo.h system.h sequencer.h synth.h vco.h lowpass.h mixer.h
-OFILES = adsr.o base.o mono_to_stereo.o system.o sequencer.o synth.o vco.o lowpass.o mixer.o
+HFILES =  base.h system.h synth.h sequencer.h adsr.h vco.h unison.h vcf.h vca.h mixer.h
+OFILES =  base.o system.o synth.o sequencer.o adsr.o vco.o unison.o vcf.o vca.o mixer.o
 
 %.o: %.cc $(HFILES) $(INLINEFILES)
 	$(CC) -c -o $@ $< $(CFLAGS)

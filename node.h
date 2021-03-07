@@ -1,41 +1,26 @@
 #ifndef NODE_H_
 #define NODE_H_
 
-// A Node computes outputs from inputs. It is responsible for owning
-// its outputs. Each input and output is an Optional, so that a Node
-// can tell when its inputs are available and can communicate when its
-// outputs are ready.
+// A Node computes output chunks from input chunks. It is responsible for owning
+// its outputs while further nodes read from them.
 //
-// The general use case is when there is a graph of nodes. The pattern
-// is to make all of the outputs nil, then iteratively compute the
-// nodes that have their inputs available until all of the nodes have
-// been computed.
-//
-//   List<Node*> todo;
-//   for (auto node : nodes) {
-//     node->StopTx();
-//     todo.push(node);
-//   }
-//
-//   while (!todo.empty()) {
-//     for (iter = todo.begin(); iter != todo.end(); ) {
-//       Node* node = *iter;
-//       if (node->RxAvailable()) {
-//         node->Compute();
-//         node->StartTx();
-//         iter = todo.erase(iter);
-//       } else {
-//         ++iter;
-//       }
-//     }
-//   }
+// The general use case is when there is a graph of nodes. The pattern is to
+// start with outputs unavailable, then iteratively have the nodes with
+// available inputs compute their outputs, making them available. Eventually all
+// of the nodes will have been computed.
 class Node {
-public:
-	virtual ~Node() {}
-	virtual void StopTx() = 0;
-	virtual bool RxAvailable() const = 0;
-	virtual void Compute(int frame_count) = 0;
-	virtual void StartTx() = 0;
+ public:
+  virtual ~Node() {}
+
+  // Returns true if all input chunks are transmitting.
+  virtual bool Rx() const = 0;
+
+  // Computes output chunks from input chunks. Make sure Rx() returns true
+  // before calling.
+  virtual void ComputeAndStartTx(int frame_count) = 0;
+
+  // Makes all outputs unavailable.
+  virtual void StopTx() = 0;
 };
 
 #endif  // NODE_H_

@@ -4,47 +4,27 @@
 #include <portmidi.h>
 
 #include "base.h"
-#include "node.h"
 #include "chunk.h"
+#include "node.h"
 
 class Sequencer : public Node {
-public:
+ public:
   Sequencer(int sample_rate, int frames_per_chunk, int voices);
   virtual ~Sequencer() {}
 
-  void set_midi_in(const ChunkTx<PmEvent>* midi_in) {
-    midi_in_ = midi_in;
-  }
+  void set_midi_in(const ChunkTx<PmEvent>* midi_in) { midi_in_ = midi_in; }
 
   const ChunkTx<float>* frequency_outs(int i) const {
     return &frequency_outs_[i];
   }
 
-  const ChunkTx<float>* trigger_outs(int i) const {
-    return &trigger_outs_[i];
-  }
+  const ChunkTx<float>* trigger_outs(int i) const { return &trigger_outs_[i]; }
 
-  void StopTx() override {
-    for (int i = 0; i < voices_; i++) {
-      frequency_outs_[i].Stop();
-      trigger_outs_[i].Stop();
-    }
-  }
+  bool Rx() const override;
+  void ComputeAndStartTx(int frame_count) override;
+  void StopTx() override;
 
-  bool RxAvailable() const override {
-    return midi_in_ != nullptr && midi_in_->available();
-  }
-
-  void Compute(int frame_count) override;
-
-  void StartTx() override {
-    for (int i = 0; i < voices_; i++) {
-      frequency_outs_[i].Start();
-      trigger_outs_[i].Start();
-    }
-  }
-
-private:
+ private:
   void TurnNoteOn(int note);
   void TurnNoteOff(int note);
 

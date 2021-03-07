@@ -5,7 +5,7 @@
 #include "node.h"
 
 class ConvolutionReverb : public Node {
-public:
+ public:
   ConvolutionReverb() {}
   ConvolutionReverb(int sample_rate, int frames_per_chunk);
   virtual ~ConvolutionReverb() {}
@@ -14,13 +14,9 @@ public:
     stereo_in_ = stereo_in;
   }
 
-  const ChunkTx<float>* stereo_out() const {
-    return &stereo_out_;
-  }
+  const ChunkTx<float>* stereo_out() const { return &stereo_out_; }
 
-  void StopTx() override {
-    stereo_out_.Stop();
-  }
+  void StopTx() override { stereo_out_.Stop(); }
 
   bool RxAvailable() const override {
     return stereo_in_ != nullptr && stereo_in_->available();
@@ -28,11 +24,9 @@ public:
 
   void Compute(int frame_count) override;
 
-  void StartTx() override {
-    stereo_out_.Start();
-  }
-  
-private:
+  void StartTx() override { stereo_out_.Start(); }
+
+ private:
   Duration duration_per_frame_;
   Duration decay_;
   const ChunkTx<float>* stereo_in_;
