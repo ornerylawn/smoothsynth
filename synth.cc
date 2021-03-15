@@ -18,13 +18,10 @@ Synth::Synth(int sample_rate, int frames_per_chunk, int voices)
       mixer_(sample_rate, frames_per_chunk, voices),
       stereo_out_(frames_per_chunk * 2) {
   for (int i = 0; i < voices_; ++i) {
-    adsrs_[i].set_trigger_in(sequencer_.trigger_outs(i));
-
-    vcos_[i].set_frequency_in(sequencer_.frequency_outs(i));
+    vcos_[i].set_cv_in(sequencer_.frequency_cv_outs(i));
     unisons_[i].set_mono_in(vcos_[i].mono_out());
-    
-    //filters_[i].set_stereo_in(unisons_[i].stereo_out());
-    
+
+    adsrs_[i].set_trigger_in(sequencer_.trigger_outs(i));
     vcas_[i].set_stereo_in(unisons_[i].stereo_out());
     vcas_[i].set_cv_in(adsrs_[i].cv_out());
     
@@ -44,24 +41,24 @@ void Synth::ComputeAndStartTx(int frame_count) {
   auto sequencer_stop = high_resolution_clock::now();
   auto seq_us = duration_cast<microseconds>(sequencer_stop - sequencer_start);
 
+  // TODO: update parameters based on midi received by sequencer? (should respect original timing).
+
   microseconds adsr_us(0);
   microseconds vco_us(0);
   microseconds uni_us(0);
   microseconds vca_us(0);
 
   for (int i = 0; i < voices_; ++i) {
-    auto adsr_start = high_resolution_clock::now();
-    adsrs_[i].ComputeAndStartTx(frame_count);
-    auto adsr_stop = high_resolution_clock::now();
-
     auto vco_start = high_resolution_clock::now();
     vcos_[i].ComputeAndStartTx(frame_count);
     auto vco_stop = high_resolution_clock::now();
     auto unison_start = high_resolution_clock::now();
     unisons_[i].ComputeAndStartTx(frame_count);
     auto unison_stop = high_resolution_clock::now();
-    //filters_[i].ComputeAndStartTx(frame_count);
 
+    auto adsr_start = high_resolution_clock::now();
+    adsrs_[i].ComputeAndStartTx(frame_count);
+    auto adsr_stop = high_resolution_clock::now();
     auto vca_start = high_resolution_clock::now();
     vcas_[i].ComputeAndStartTx(frame_count);
     auto vca_stop = high_resolution_clock::now();
@@ -99,11 +96,10 @@ void Synth::StopTx() {
   stereo_out_.set_tx(false);
   mixer_.StopTx();
   for (int i = 0; i < voices_; ++i) {
-    //vcas_[i].StopTx();
-    //filters_[i].StopTx();
+    vcas_[i].StopTx();
+    adsrs_[i].StopTx();
     unisons_[i].StopTx();
     vcos_[i].StopTx();
-    //adsrs_[i].StopTx();
   }
   sequencer_.StopTx();
 }

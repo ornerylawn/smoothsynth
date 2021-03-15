@@ -152,11 +152,16 @@ const Duration Microsecond = Duration(1000) * Nanosecond;
 const Duration Millisecond = Duration(1000) * Microsecond;
 const Duration Second = Duration(1000) * Millisecond;
 
-float SecondsPerFrame(int sample_rate);
+inline float SecondsPerFrame(int sample_rate) { return 1.0 / sample_rate; }
 
-Duration DurationPerFrame(int sample_rate);
+inline Duration DurationPerFrame(int sample_rate) {
+  return Duration(SecondsPerFrame(sample_rate) * Second.nanos());
+}
 
-int NextPowerOf2(int k);
+constexpr int NextPowerOf2(int k) {
+  int power = std::floor(std::log2((float)k)) + 1;
+  return 1 << power;
+}
 
 inline float RadiansPerFrame(float frequency, float seconds_per_sample) {
   float rotations_per_sample = frequency * seconds_per_sample;

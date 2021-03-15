@@ -14,8 +14,8 @@ class Sequencer : public Node {
 
   void set_midi_in(const ChunkTx<PmEvent>* midi_in) { midi_in_ = midi_in; }
 
-  const ChunkTx<float>* frequency_outs(int i) const {
-    return &frequency_outs_[i];
+  const ChunkTx<float>* frequency_cv_outs(int i) const {
+    return &frequency_cv_outs_[i];
   }
 
   const ChunkTx<float>* trigger_outs(int i) const { return &trigger_outs_[i]; }
@@ -29,7 +29,7 @@ class Sequencer : public Node {
   void TurnNoteOff(int note);
 
   const ChunkTx<PmEvent>* midi_in_;
-  FixedArray<ChunkTx<float>> frequency_outs_;
+  FixedArray<ChunkTx<float>> frequency_cv_outs_;
   FixedArray<ChunkTx<float>> trigger_outs_;
 
   // When a note is turned on, we need to use one of the unused

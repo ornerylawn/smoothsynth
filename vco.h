@@ -8,13 +8,10 @@
 class VCO : public Node {
  public:
   VCO() {}
-  VCO(int sample_rate, int frames_per_chunk, float drift_offset);
+  VCO(int sample_rate, int frames_per_chunk, float drift_cents);
   virtual ~VCO() {}
 
-  void set_frequency_in(const ChunkTx<float>* frequency_in) {
-    frequency_in_ = frequency_in;
-  }
-
+  void set_cv_in(const ChunkTx<float>* cv_in) { cv_in_ = cv_in; }
   const ChunkTx<float>* mono_out() const { return &mono_out_; }
 
   bool Rx() const override;
@@ -22,13 +19,14 @@ class VCO : public Node {
   void StopTx() override;
 
  private:
-  float frequency_to_radians_;
-  float radians_;
+  const float drift_cv_;
+  const float seconds_per_frame_;
+
+  const ChunkTx<float>* cv_in_;
+  ChunkTx<float> mono_out_;
 
   FixedArray<float> wave_table_;
-
-  const ChunkTx<float>* frequency_in_;
-  ChunkTx<float> mono_out_;
+  float radial_fraction_;  // [0.0, 1.0)
 };
 
 #endif  // VCO_H_
