@@ -20,6 +20,8 @@ class Sequencer : public Node {
 
   const ChunkTx<float>* trigger_outs(int i) const { return &trigger_outs_[i]; }
 
+  float cutoff() { return cutoff_; }
+
   bool Rx() const override;
   void ComputeAndStartTx(int frame_count) override;
   void StopTx() override;
@@ -31,6 +33,7 @@ class Sequencer : public Node {
   const ChunkTx<PmEvent>* midi_in_;
   FixedArray<ChunkTx<float>> frequency_cv_outs_;
   FixedArray<ChunkTx<float>> trigger_outs_;
+  float cutoff_;
 
   // When a note is turned on, we need to use one of the unused
   // voices, or recycle a voice in use. If we're picking a voice in

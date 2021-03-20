@@ -5,20 +5,28 @@
 #include <portmidi.h>
 
 #include <functional>
+#include <vector>
 
 #include "chunk.h"
 
 class System {
  public:
-  System(int midi_in_buffer_size, const std::string& midi_in_name,
+  System(int midi_in_buffer_size, const std::vector<std::string>& midi_in_names,
          int sample_rate, int frames_per_chunk,
          std::function<void(int)> callback)
       : midi_in_(midi_in_buffer_size),
         stereo_out_(nullptr),
-        midi_in_name_(midi_in_name),
+        midi_in_names_(midi_in_names),
+        midi_in_streams_(midi_in_names.size()),
+        midi_in_streams_opened_(midi_in_names.size()),
         sample_rate_(sample_rate),
         frames_per_chunk_(frames_per_chunk),
-        callback_(callback) {}
+        callback_(callback) {
+          for (int i = 0; i < midi_in_streams_.size(); ++i) {
+            midi_in_streams_[i] = nullptr;
+            midi_in_streams_opened_[i] = false;
+          }
+        }
 
   ~System();
 
@@ -33,15 +41,15 @@ class System {
   void AudioDriverCallback(const float* in, float* out, int frame_count);
 
  private:
-  std::string midi_in_name_;
+  const std::vector<std::string>& midi_in_names_;
   int sample_rate_;
   int frames_per_chunk_;
 
-  PortMidiStream* midi_in_stream_;
+  std::vector<PortMidiStream*> midi_in_streams_;
   PaStream* audio_out_stream_;
 
   bool midi_initialized_;
-  bool midi_in_stream_opened_;
+  std::vector<bool> midi_in_streams_opened_;
   bool audio_initialized_;
   bool audio_out_stream_opened_;
   bool audio_out_stream_started_;

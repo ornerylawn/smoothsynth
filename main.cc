@@ -16,11 +16,11 @@ void AudioDriverCallback(int frame_count) {
   CHECK(global_synth->stereo_out()->tx());
 }
 
-Optional<Error> PowerOn(const std::string& midi_in_name,
+Optional<Error> PowerOn(const std::vector<std::string>& midi_in_names,
                         int midi_in_buffer_size, int sample_rate,
                         int frames_per_chunk, int voices) {
-  CHECK(!midi_in_name.empty());
-  System sys(midi_in_buffer_size, midi_in_name, sample_rate, frames_per_chunk,
+  CHECK(!midi_in_names.empty());
+  System sys(midi_in_buffer_size, midi_in_names, sample_rate, frames_per_chunk,
              AudioDriverCallback);
   Synth synth(sample_rate, frames_per_chunk, voices);
   synth.set_midi_in(sys.midi_in());
@@ -50,6 +50,21 @@ Optional<Error> ListMidiDevicesCommand() {
   return Nil<Error>();
 }
 
+std::vector<std::string> StrSplit(const std::string& s, const std::string& sep) {
+  std::vector<std::string> tokens;
+  size_t lo = 0;
+  while (true) {
+    size_t hi = s.find(sep, lo);
+    if (hi == std::string::npos) {
+      tokens.emplace_back(s.substr(lo, s.size()-lo));
+      break;
+    }
+    tokens.emplace_back(s.substr(lo, hi-lo));
+    lo = hi+sep.size();
+  }
+  return tokens;
+}
+
 const char* power_on_usage =
     "usage: smoothsynth power_on <args>\n"
     "\n"
@@ -60,8 +75,8 @@ Optional<Error> PowerOnCommand(const std::vector<std::string>& args) {
   int midi_in_buffer_size = 32;
   int sample_rate = 44100;
   int frames_per_chunk = 1024;
-  int voices = 4;
-  std::string midi_in_name;
+  int voices = 6;
+  std::vector<std::string> midi_in_names;
 
   for (int i = 0; i < args.size(); i++) {
     if (args[i] == "--help") {
@@ -70,15 +85,15 @@ Optional<Error> PowerOnCommand(const std::vector<std::string>& args) {
       if (i + 1 == args.size()) {
         return AsOptional(Error(power_on_usage));
       }
-      midi_in_name = args[i + 1];
+      midi_in_names = StrSplit(args[i+1], ",");
     }
   }
 
-  if (midi_in_name.empty()) {
+  if (midi_in_names.empty()) {
     return AsOptional(Error(power_on_usage));
   }
 
-  return PowerOn(midi_in_name, midi_in_buffer_size, sample_rate,
+  return PowerOn(midi_in_names, midi_in_buffer_size, sample_rate,
                  frames_per_chunk, voices);
 }
 
@@ -252,7 +267,7 @@ class Repl {
     if (cmd == "list_midi") {
       ListMidiDevicesCommand();
     } else if (cmd == "power") {
-      PowerOnCommand({"--midi_in", "A-PRO 1"});
+      PowerOnCommand({"--midi_in", "A-PRO 1,A-PRO 2"});
     } else {
     }
   }
@@ -269,7 +284,8 @@ class Repl {
 Optional<Error> smoothsynth(int argc, char** argv) {
   //Repl repl;
   //repl.Run();
-  PowerOnCommand({"--midi_in", "A-PRO 1"});
+  ListMidiDevicesCommand();
+  PowerOnCommand({"--midi_in", "A-PRO 1,A-PRO 2"});
   return Nil<Error>();
 }
 

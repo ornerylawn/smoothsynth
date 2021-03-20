@@ -11,6 +11,7 @@ class VCO : public Node {
   VCO(int sample_rate, int frames_per_chunk, float drift_cents);
   virtual ~VCO() {}
 
+  void set_drift_cents(float drift_cents);
   void set_cv_in(const ChunkTx<float>* cv_in) { cv_in_ = cv_in; }
   const ChunkTx<float>* mono_out() const { return &mono_out_; }
 
@@ -19,8 +20,8 @@ class VCO : public Node {
   void StopTx() override;
 
  private:
-  const float drift_cv_;
-  const float seconds_per_frame_;
+  float drift_cv_;
+  float seconds_per_frame_;
 
   const ChunkTx<float>* cv_in_;
   ChunkTx<float> mono_out_;

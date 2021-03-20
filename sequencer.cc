@@ -6,6 +6,7 @@ Sequencer::Sequencer(int sample_rate, int frames_per_chunk, int voices)
     : midi_in_(nullptr),
       frequency_cv_outs_(voices, ChunkTx<float>(frames_per_chunk)),
       trigger_outs_(voices, ChunkTx<float>(frames_per_chunk)),
+      cutoff_(4000.0f),
       voices_(voices),
       voice_list_(voices),
       voice_by_note_(128) {
@@ -51,6 +52,17 @@ void Sequencer::ComputeAndStartTx(int frame_count) {
         break;
       case 144:
         TurnNoteOn(Pm_MessageData1(event.message));
+        break;
+      case 176:
+        {
+          int control = Pm_MessageData1(event.message);
+          int value = Pm_MessageData2(event.message);
+          if (control == 74) {
+            cutoff_ = std::pow(2, 5.3 + value/127.0 * 9);
+          }
+          //std::cout << "control change: " << Pm_MessageData1(event.message)
+          //          << ", " << Pm_MessageData2(event.message) << std::endl;
+        }
         break;
       default:
         break;

@@ -11,13 +11,19 @@ class VCF : public Node {
   VCF(int sample_rate, int frames_per_chunk)
       : stereo_in_(nullptr),
         stereo_out_(2 * frames_per_chunk),
+        sample_rate_(sample_rate),
         duration_per_frame_(DurationPerFrame(sample_rate)),
-        last_left_sample_(0.0f),
-        last_right_sample_(0.0f) {}
+        cutoff_(4000.0f),
+        left_notch_(0.0f),
+        left_low_(0.0f),
+        left_high_(0.0f),
+        left_band_(0.0f) {}
 
   void set_stereo_in(const ChunkTx<float>* stereo_in) {
     stereo_in_ = stereo_in;
   }
+
+  void set_cutoff(float cutoff) { cutoff_ = cutoff; }
 
   const ChunkTx<float>* stereo_out() const { return &stereo_out_; }
 
@@ -26,10 +32,16 @@ class VCF : public Node {
   void StopTx() override;
 
  private:
-  Duration duration_per_frame_;
-  float last_left_sample_, last_right_sample_;
   const ChunkTx<float>* stereo_in_;
   ChunkTx<float> stereo_out_;
+  float sample_rate_;
+  Duration duration_per_frame_;
+  float cutoff_;
+
+  float left_notch_;
+  float left_low_;
+  float left_high_;
+  float left_band_;
 };
 
 #endif  // VCF_H_

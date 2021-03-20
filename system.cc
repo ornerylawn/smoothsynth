@@ -58,18 +58,25 @@ Optional<Error> System::Start() {
   RETURN_IF_ERROR(PortError(Pa_StartStream(audio_out_stream_)));
   audio_out_stream_started_ = true;
 
+  std::cout << "Audio initialized." << std::endl;
+
   RETURN_IF_ERROR(PortError(Pm_Initialize()));
   midi_initialized_ = true;
 
-  int midi_in_device_index;
-  CHECK(midi_in_device_index != -1);
-  RETURN_IF_ERROR(GetMidiInDeviceIndex(midi_in_name_, &midi_in_device_index));
+  std::cout << "midi_in_names_.size(): " << midi_in_names_.size() << std::endl;
 
-  RETURN_IF_ERROR(
-      PortError(Pm_OpenInput(&midi_in_stream_, midi_in_device_index, nullptr,
-                             midi_in_.capacity(), nullptr, nullptr)));
-  CHECK(midi_in_stream_ != nullptr);
-  midi_in_stream_opened_ = true;
+  for (int i = 0; i < midi_in_names_.size(); ++i) {
+    int midi_in_device_index;
+    RETURN_IF_ERROR(GetMidiInDeviceIndex(midi_in_names_[i], &midi_in_device_index));
+
+    RETURN_IF_ERROR(
+        PortError(Pm_OpenInput(&midi_in_streams_[i], midi_in_device_index, nullptr,
+                               midi_in_.capacity(), nullptr, nullptr)));
+    CHECK(midi_in_streams_[i] != nullptr);
+    midi_in_streams_opened_[i] = true;
+
+    std::cout << "MIDI initialized (" << midi_in_names_[i] << ")." << std::endl;
+  }
 
   return Nil<Error>();
 }
@@ -79,14 +86,16 @@ void System::AudioDriverCallback(const float* in, float* out, int frame_count) {
   CHECK(frame_count <= frames_per_chunk_);
 
   midi_in_.set_tx(false);
-  CHECK(midi_in_stream_ != nullptr);
-  if (midi_in_stream_opened_ && Pm_Poll(midi_in_stream_)) {
-    int midi_count =
-        Pm_Read(midi_in_stream_, midi_in_.write_ptr(), midi_in_.capacity());
-    midi_in_.set_size(midi_count);
-  } else {
-    midi_in_.set_size(0);
+  int midi_count = 0;
+  for (int i = 0; i < midi_in_streams_.size(); ++i) {
+    CHECK(midi_in_streams_[i] != nullptr);
+    if (midi_in_streams_opened_[i] && Pm_Poll(midi_in_streams_[i])) {
+      midi_count +=
+          Pm_Read(midi_in_streams_[i], midi_in_.write_ptr() + midi_count,
+                  midi_in_.capacity() - midi_count);
+    }
   }
+  midi_in_.set_size(midi_count);
   midi_in_.set_tx(true);
 
   callback_(frame_count);
@@ -108,8 +117,10 @@ System::~System() {
   if (audio_initialized_) {
     Pa_Terminate();
   }
-  if (midi_in_stream_opened_) {
-    Pm_Close(midi_in_stream_);
+  for (int i = 0; i < midi_in_streams_.size(); ++i) {
+    if (midi_in_streams_opened_[i]) {
+      Pm_Close(midi_in_streams_[i]);
+    }
   }
   if (midi_initialized_) {
     Pm_Terminate();

@@ -158,8 +158,8 @@ inline Duration DurationPerFrame(int sample_rate) {
   return Duration(SecondsPerFrame(sample_rate) * Second.nanos());
 }
 
-constexpr int NextPowerOf2(int k) {
-  int power = std::floor(std::log2((float)k)) + 1;
+inline int NextPowerOf2(int k) {
+  int power = std::floor(std::log2(static_cast<float>(k))) + 1;
   return 1 << power;
 }
 

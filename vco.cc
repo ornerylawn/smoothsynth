@@ -11,8 +11,8 @@ namespace {
 constexpr float kLowestA = 13.75;
 constexpr float kMaxHarmonicFrequency = 20000;
 constexpr int kFirstTableHarmonics = kMaxHarmonicFrequency / (kLowestA * 2);
-constexpr int kTableSize = NextPowerOf2(kFirstTableHarmonics * 2 + 1);
-constexpr int kTableCount = std::log2(20000 - kLowestA * 2);
+const int kTableSize = NextPowerOf2(kFirstTableHarmonics * 2 + 1);
+const int kTableCount = std::log2(20000) - std::log2(kLowestA);
 constexpr float kCentsPerCV = (1.0 / 12.0) / 100.0;
 
 //const float lo_f = 13.75;    // lowest A
@@ -38,11 +38,12 @@ void FillSawTable(int samples, int harmonics, float* buf) {
   // Last sample should be radians=2pi. The last usable index is actually
   // samples-2, but we'll lerp with samples-1, so it should have the same sample
   // as radians=0.
-  for (int i = 0; i < samples; ++i) {
+  for (int i = 0; i < samples-1; ++i) {
     float rotations = i / static_cast<float>(samples-1);
     float radians = TWO_PI * rotations;
     buf[i] = SampleSaw(radians, harmonics);
   }
+  buf[samples-1] = buf[0];
 }
 
 }  // namespace
@@ -54,8 +55,6 @@ VCO::VCO(int sample_rate, int frames_per_chunk, float drift_cents)
       mono_out_(frames_per_chunk),
       wave_table_(kTableCount * kTableSize),
       radial_fraction_(0.0f) {
-  std::cout << "kTableSize: " << kTableSize << "\n"
-            << "kTableCount: " << kTableCount << "\n";
   for (int i = 0; i < kTableCount; i++) {
     int harmonics = HarmonicsForTable(i);
     float* buf = wave_table_.buf() + (i * kTableSize);
@@ -69,11 +68,11 @@ VCO::VCO(int sample_rate, int frames_per_chunk, float drift_cents)
     if (i == kTableCount-1) {
       f_hi = 20000.0f;
     }
-    std::cout << "wave table " << i << ": " << harmonics << " harmonics "
-              << ", [" << f_lo << ", " << f_hi << ")"
-              << ", first sample = " << buf[0]
-              << ", last sample = " << buf[kTableSize - 1] << "\n";
   }
+}
+
+void VCO::set_drift_cents(float drift_cents) {
+  drift_cv_ = drift_cents * kCentsPerCV;
 }
 
 bool VCO::Rx() const { return cv_in_ != nullptr && cv_in_->tx(); }
@@ -84,8 +83,8 @@ void VCO::ComputeAndStartTx(int frame_count) {
   float* mono_out = mono_out_.write_ptr();
 
   for (int i = 0; i < frame_count; ++i) {
-    float frequency = kLowestA*std::pow(2, cv_in_[i] + drift_cv_);
-    float power_distance = std::log2(frequency) - std::log2(kLowestA * 2);
+    float frequency = kLowestA*std::pow(2, cv_in[i] + drift_cv_);
+    float power_distance = std::log2(frequency) - std::log2(kLowestA);
     int table_index =
         (power_distance < 0.0f ? 0
                                : (power_distance >= kTableCount
